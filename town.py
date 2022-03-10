@@ -1,5 +1,6 @@
 from PIL import Image, ImageDraw
 import random
+import math
 
 from matplotlib.patches import Rectangle
 
@@ -34,6 +35,9 @@ class Point:
 
     def toTuple(self) :
         return (self.x,self.y)
+
+    def dist(self,point) :
+        return (math.sqrt(abs(self.x - point.x)**2 + abs(self.y - point.y)**2))
 
 class Town :
 
@@ -73,7 +77,6 @@ class Town :
         for block in t.blocks :
             center += block.rect.center
         center *= Point(1/len(t.blocks),1/len(t.blocks))
-        print(center.toString())
         dif = (t.size/Point(2,2)) - center
         for block in t.blocks :
             block.rect.translate(dif)
@@ -107,9 +110,7 @@ class Town :
 class Camera :
     def __init__(self,point) :
         self.position = point
-    
-    def affiche(self) :
-        print("camera :", self.position.toString())
+
     
     def draw(img) :
         i=1
@@ -127,10 +128,6 @@ class Block :
         drw.polygon(self.rect.scale(ratio).allCorners, fill=(0, 255,0, 255//2))
 
 
-
-
-
-    
 class Rectangle :
     def __init__(self,topLeft,size) :
         self.topLeft = topLeft
@@ -166,3 +163,33 @@ class Rectangle :
     def translate(self,point) :
         self.topLeft += point
 
+class Triangle :
+    def __init__(self, sommet, height, angle, inclinaison = 0) :
+        self.height = height
+        self.sommet = sommet
+        self.angle =(angle*math.pi)/180
+        self.inclinaison = (inclinaison*math.pi)/180
+        self.point1 = Point(self.height, self.height*math.tan(self.angle/2)) + self.sommet
+        self.point2 = Point(self.height, -self.height*math.tan(self.angle/2)) + self.sommet
+        
+
+    @property
+    def pointList(self) :
+        return [self.sommet.toTuple(), self.point1.toTuple(), self.point2.toTuple()]
+
+    def scale(self,point) :
+        self.sommet *= point
+        self.point1 *= point
+        self.point2 *= point
+
+    def draw(self,img, ratio = Point(100,100)) :
+        drw = ImageDraw.Draw(img, 'RGBA')
+        self.scale(ratio)
+        drw.polygon(self.pointList, fill=(255, 255,255,255//2))
+
+    def rotate(self,inclinaison) :
+        p1 = self.point1 - self.sommet
+        p2 = self.point2 - self.sommet
+        self.inclinaison += (inclinaison*math.pi)/180
+        self.point1 = Point(p1.x*math.cos(self.inclinaison) - p1.y*math.sin(self.inclinaison), p1.x*math.sin(self.inclinaison) + p1.y*math.cos(self.inclinaison)) + self.sommet
+        self.point2 = Point(p2.x*math.cos(self.inclinaison) - p2.y*math.sin(self.inclinaison), p2.x*math.sin(self.inclinaison) + p2.y*math.cos(self.inclinaison)) + self.sommet
